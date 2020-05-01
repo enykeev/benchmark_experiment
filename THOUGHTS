@@ -1,0 +1,30 @@
+Alright, story time.
+
+I've built this thing so I could roughly benchmark throughput of my IFTTT service.
+
+I figured that before I start testing the complex interconnected service, I should mock it in the most simplest of terms. In this case, it's an express webserver that makes a connection to remote service in response to incoming connection.
+
+After some fiddling, I came up with a number that this mock server can handle about 800RPS per core without introducing too much noise into the picture. After that, the response time starts to fluctuate pretty rapidly which is most likely caused by event loop delays due to GC.
+
+I also found a hard limit of about 2500RPS no matter whether I'm running 3 or 4 mock servers in parallel. Given that my laptop has only 4 cores and 8 threads 4 of which are taken by load generators (who are also web servers that suppose to handle webhooks in 1:1 ratio to requests sent), I'd say it's probably not all that surprising.
+
+As a side note, I've tried using Caddy1 to load balance between mock servers and quickly discovered that caddy itself has pretty low concurrency ceiling out the box. Docker's dnsrr, unsurprisingly enough, seem to be doing much better.
+
+In general, I'd say that the initial goal is reached and I'm ready to start testing IFTTT service with that. I do not expect it to be even remotely close to 800RPS throughput per core.
+
+As for this project, I think there's still some room for improvement both is throughput and in presentation of results.
+
+TODO:
+- Throughput might be limited by something inbetween mock server and load generator be it dnsrr, limit on file descriptors or anything else.
+
+- Improve resource utilization by dumping webhooks to a third-party high throughput service (nginx) on a separate core or some sort of black hole on a network layer (iptables?).
+
+- Should also check best practices for running node in production.
+
+- Move to swarm since it would allow to better distribute initial load over time.
+
+- In general it makes sense to start moving from my laptop to a cloud platform that is better suited for that kind of testing and provides more space for scalability. I bet Terraform would be of great help there.
+
+- On the other hand, if we are to move to the cloud, it also makes sense to have some sort of a controller for our load generators first so we would not have to deal with all that pesky json files.
+
+- As far as results go, for now we're only showing some crude version of requests per second, responses per second and webhooks per second. From other useful metrics there's RTT, E2ETT (request to webhook), CPU utilization (which we currently monitor separately), memory utilization, event loop period, axios retry count (which it most likely has), avaliable file descriptors (if possible), humber of registered handlers. Not all of that is terribly necessary, but any of that might point on possible bottlenecks.

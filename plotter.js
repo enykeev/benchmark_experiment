@@ -1,27 +1,62 @@
 const fs = require('fs')
 
+const _ = require('lodash')
+
 function parse (filename, offset) {
   const content = fs.readFileSync(filename)
 
   const marks = JSON.parse(content)
 
-  const x = marks.map((i, k) => k)
-  const rtt = marks.map(i => i.response - i.start)
-  const e2e = marks.map(i => i.webhook - i.start)
+  const origin = marks[0].ts - marks[0].initial
 
-  return [{
-    name: 'rtt',
-    x,
-    y: rtt
-  }, {
-    name: 'e2e',
-    x,
-    y: e2e
-  }]
+  // return _(marks)
+  //   .groupBy(m => {
+  //     return Math.floor(origin + m.start)
+  //   })
+  //   .mapValues(g => g.length)
+  //   .value()
+
+  return _.map(marks, m => {
+    return [{
+      type: 'request',
+      time: origin + m.start
+    }, {
+      type: m.status,
+      time: origin + m.response
+    },{
+      type: 'webhook',
+      time: origin + m.webhook
+    }]
+  })
 }
 
-const plots = fs.readdirSync('./data')
+const plots = _.chain(fs.readdirSync('./data'))
   .map((filename, n) => parse(`./data/${filename}`, n*500))
-  .flat()
+  .flattenDeep()
+  .groupBy('type')
+  .map((i, name) => {
+    return {
+      name,
+      ..._.chain(i)
+      .filter(({ time }) => !_.isNaN(time))
+      .groupBy(({ time }) => Math.floor(time / 1000))
+      .mapValues('length')
+      .toPairs()
+      .sortBy(i => i[0])
+      .reduce(({ x, y }, [k, v]) => {
+        return {
+          x: [...x, new Date(k * 1000).toISOString()],
+          y: [...y, v]
+        }
+      }, {
+        x: [],
+        y: []
+      })
+      .value()
+    }
+  })
+  .value()
+
+//console.log(plots)
 
 fs.writeFileSync('./plots/1.json', JSON.stringify(plots, null, 2))

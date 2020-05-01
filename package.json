@@ -12,9 +12,9 @@
   "dependencies": {
     "axios": "^0.19.2",
     "express": "^4.17.1",
+    "lodash": "^4.17.15",
     "parcel-bundler": "^1.12.4",
     "plotly.js": "^1.54.0",
-    "plotly.js-dist": "^1.54.0",
     "simple-statistics": "^7.0.9"
   }
 }

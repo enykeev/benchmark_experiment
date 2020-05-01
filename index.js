@@ -15,4 +15,4 @@ const style = {
   }
 }
 
-Plotly.newPlot(document.getElementById('plot'), data, style);
+Plotly.newPlot(document.getElementById('plot'), data, style, { displayModeBar: false });
