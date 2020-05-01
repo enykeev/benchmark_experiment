@@ -1,0 +1,40 @@
+version: '2.4'
+
+services:
+  mockserver:
+    image: node:14
+    working_dir: /app
+    command: node mockserver.js
+    cpus: 1
+    cpuset: '3'
+    environment:
+      PORT: 3500
+      WEBHOOK_HOST: benchmark
+      WEBHOOK_PORT: 4000
+    networks:
+      - http
+    volumes:
+      - .:/app
+
+  benchmark:
+    image: node:14
+    working_dir: /app
+    command: node distributed.js
+    cpus: 1
+    scale: 10
+    restart: 'unless-stopped'
+    depends_on:
+      - mockserver
+    environment:
+      TARGET_HOST: mockserver
+      TARGET_PORT: 3500
+      WEBHOOK_PORT: 4000
+      DATA_DIR: /data
+    networks:
+      - http
+    volumes:
+      - .:/app
+      - ./data:/data
+
+networks:
+  http:
