@@ -2,19 +2,12 @@ const fs = require('fs')
 
 const _ = require('lodash')
 
-function parse (filename, offset) {
+function parse (filename) {
   const content = fs.readFileSync(filename)
 
   const marks = JSON.parse(content)
 
   const origin = marks[0].ts - marks[0].initial
-
-  // return _(marks)
-  //   .groupBy(m => {
-  //     return Math.floor(origin + m.start)
-  //   })
-  //   .mapValues(g => g.length)
-  //   .value()
 
   return _.map(marks, m => {
     return [{
@@ -31,7 +24,7 @@ function parse (filename, offset) {
 }
 
 const plots = _.chain(fs.readdirSync('./data'))
-  .map((filename, n) => parse(`./data/${filename}`, n*500))
+  .map((filename, n) => parse(`./data/${filename}`))
   .flattenDeep()
   .groupBy('type')
   .map((i, name) => {

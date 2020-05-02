@@ -8,20 +8,20 @@ After some fiddling, I came up with a number that this mock server can handle ab
 
 I also found a hard limit of about 2500RPS no matter whether I'm running 3 or 4 mock servers in parallel. Given that my laptop has only 4 cores and 8 threads 4 of which are taken by load generators (who are also web servers that suppose to handle webhooks in 1:1 ratio to requests sent), I'd say it's probably not all that surprising.
 
+Running benchmark in swarm mode also confirmed that no matter the ratio between mock servers and load generators, the throughput peaks at about 2500RPS on my machine. In fact, increasing number of load generators reduces the overall throughput of the system, presumably, because of the ambient cpu load each of them produces. If this assumption is correct, this would likely mean that we're indeed mostly bound by cpu utilization rather than some underlying system level limit on file descriptors and such.
+
+Somewhat predictably, but still worth checking, removing the whole webhook part of the routine increases throughput, wait for it, twofold.
+
 As a side note, I've tried using Caddy1 to load balance between mock servers and quickly discovered that caddy itself has pretty low concurrency ceiling out the box. Docker's dnsrr, unsurprisingly enough, seem to be doing much better.
 
 In general, I'd say that the initial goal is reached and I'm ready to start testing IFTTT service with that. I do not expect it to be even remotely close to 800RPS throughput per core.
 
 As for this project, I think there's still some room for improvement both is throughput and in presentation of results.
 
+I've implemented some simple controller for load generators based on websockets. It seems there's a noticeable impact on the throughput of the system due to increases in CPU utilization due to that. Still, it seem to be worth it if we are to move to cloud with this tool as managing a heap of json files across multiple machines is bound to be a pain. So far I'm seeing about 25% decrease in RPS, but this number may change both ways both due me finding bottlenecks and due to adding more metrics to calculate.
+
 TODO:
 - Throughput might be limited by something inbetween mock server and load generator be it dnsrr, limit on file descriptors or anything else.
-
-- Improve resource utilization by dumping webhooks to a third-party high throughput service (nginx) on a separate core or some sort of black hole on a network layer (iptables?).
-
-- Should also check best practices for running node in production.
-
-- Move to swarm since it would allow to better distribute initial load over time.
 
 - In general it makes sense to start moving from my laptop to a cloud platform that is better suited for that kind of testing and provides more space for scalability. I bet Terraform would be of great help there.
 

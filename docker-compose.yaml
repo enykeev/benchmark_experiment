@@ -1,44 +1,60 @@
-version: '2.4'
+version: '3.7'
 
 services:
   mockserver:
     image: node:14
     working_dir: /app
     command: node mockserver.js
-    cpus: 1
-    cpuset: '0,1,2,3'
-    scale: 4
     environment:
+      NODE_ENV: production
       PORT: 3500
       WEBHOOK_HOST: benchmark
       WEBHOOK_PORT: 4000
+      BLACKHOLE_WEBHOOK: yep
     networks:
       - http
     volumes:
       - .:/app
+    deploy:
+      replicas: 3
+      endpoint_mode: dnsrr
 
-  benchmark:
+  controller:
     image: node:14
     working_dir: /app
-    command: node distributed.js
-    cpus: 1
-    cpuset: '4,5,6,7'
-    scale: 4
-    restart: 'unless-stopped'
-    depends_on:
-      - mockserver
+    command: node controller.js
     environment:
+      NODE_ENV: production
       TARGET_HOST: mockserver
       TARGET_PORT: 3500
       WEBHOOK_PORT: 4000
       DATA_DIR: /data
-      BATCH_REQUESTS: 400
-      BATCH_TIMEFRAME: 500
+      BATCH_SIZE: 300
+      BATCH_WINDOW: 500
     networks:
       - http
     volumes:
       - .:/app
       - ./data:/data
+
+  worker:
+    image: node:14
+    working_dir: /app
+    command: node worker.js
+    depends_on:
+      - mockserver
+      - controller
+    environment:
+      NODE_ENV: production
+      WEBHOOK_PORT: 4000
+      DATA_DIR: /data
+    networks:
+      - http
+    volumes:
+      - .:/app
+      - ./data:/data
+    deploy:
+      replicas: 3
 
 networks:
   http:

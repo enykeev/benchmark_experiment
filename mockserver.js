@@ -1,12 +1,15 @@
 const axios = require('axios')
 const express = require('express')
 
-const { PORT, WEBHOOK_PORT } = process.env
+const { PORT, WEBHOOK_PORT, BLACKHOLE_WEBHOOK } = process.env
 
 const app = express()
 
 app.get('/:hostname/:port/:id', (req, res) => {
   const { hostname, port, id } = req.params
+
+  console.log(`http://${hostname}:${port}/${id}`)
+
   axios.get(`http://${hostname}:${port}/${id}`)
     .catch(e => console.error('request failed:', e.toString(), id))
 

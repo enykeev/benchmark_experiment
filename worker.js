@@ -1,21 +1,13 @@
-const fs = require('fs/promises')
-const os = require('os')
-const path = require('path')
 const { performance } = require('perf_hooks')
 
 const _ = require('lodash')
 const axios = require('axios')
 const express = require('express')
+const WebSocket = require('ws');
 
 const {
-  TARGET_HOST,
-  TARGET_PORT,
   HOSTNAME,
-  WEBHOOK_PORT,
-  DATA_DIR,
-  BATCH_REQUESTS = 500,
-  BATCH_TIMEFRAME = 5000,
-  BATCH_TIMEOUT = 10000
+  WEBHOOK_PORT
 } = process.env
 
 
@@ -46,15 +38,13 @@ const server = app.listen(WEBHOOK_PORT, () => {
   console.log('listening on port', WEBHOOK_PORT)
 })
 
-function makeCall (id) {
+function makeCall (id, request, batchWindow, batchTimeout) {
   const callStats = {
     ts: Math.floor(Date.now()),
     initial: performance.now()
   }
 
-  const url = `http://${TARGET_HOST}:${TARGET_PORT}/${HOSTNAME}/${WEBHOOK_PORT}/${id}`
-
-  return wait(BATCH_TIMEFRAME * Math.random())
+  return wait(batchWindow * Math.random())
     .then(() => {
       callStats.start = performance.now()
       callStats.status = 'timeout'
@@ -66,7 +56,10 @@ function makeCall (id) {
           resolve()
         }
       })
-      const expectedRequest = axios.get(url)
+      const expectedRequest = axios.request({
+        ...request,
+        url: request.url + `${HOSTNAME}/${WEBHOOK_PORT}/${id}`
+      })
         .then(res => {
           callStats.status = 'success'
           callStats.response = performance.now()
@@ -78,7 +71,7 @@ function makeCall (id) {
 
       return Promise.race([
         Promise.allSettled([expectedRequest, expectedWebhook]),
-        wait(BATCH_TIMEOUT)
+        wait(batchTimeout)
       ])
     })
     .then(() => {
@@ -86,18 +79,37 @@ function makeCall (id) {
     })
 }
 
+const ws = new WebSocket('ws://controller:8080');
+
 async function main () {
+  let currentState = {}
+
+  ws.on('message', async data => {
+    currentState = JSON.parse(data)
+  })
+
   while (true) {
-    const bulkId = `${+Date.now()}-${HOSTNAME}`
-    const marks = await runBulk(BATCH_REQUESTS, async id => {
-      return await makeCall(`${bulkId}-${id}`)
+    const {
+      state,
+      batchId,
+      request,
+      batchSize,
+      batchWindow,
+      batchTimeout
+    } = currentState
+
+    console.log(state)
+
+    if (state !== 'running') {
+      await wait(100)
+      continue
+    }
+
+    const marks = await runBulk(batchSize, async id => {
+      return await makeCall(`${batchId}-${id}`, request, batchWindow, batchTimeout)
     }).then(marks => marks.map(m => m.value))
 
-    const fh = await fs.open(path.join(DATA_DIR, `${bulkId}.json`), 'wx')
-
-    await fh.writeFile(JSON.stringify(marks), 'utf8')
-
-    await fh.close()
+    ws.send(JSON.stringify(marks))
   }
 }
 
@@ -106,6 +118,6 @@ main()
     console.error(e)
   })
   .then(() => {
-    server.close()
+    //server.close()
     console.info('exiting')
   })
