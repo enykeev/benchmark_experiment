@@ -23,6 +23,8 @@ services:
     image: node:14
     working_dir: /app
     command: node controller.js
+    ports:
+      - 6550:8080
     environment:
       NODE_ENV: production
       TARGET_HOST: mockserver
@@ -35,7 +37,6 @@ services:
       - http
     volumes:
       - .:/app
-      - ./data:/data
 
   worker:
     image: node:14
@@ -47,12 +48,10 @@ services:
     environment:
       NODE_ENV: production
       WEBHOOK_PORT: 4000
-      DATA_DIR: /data
     networks:
       - http
     volumes:
       - .:/app
-      - ./data:/data
     deploy:
       replicas: 3
 

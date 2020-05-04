@@ -7,6 +7,7 @@ const WebSocket = require('ws');
 
 const {
   HOSTNAME,
+  WEBHOOK_HOST,
   WEBHOOK_PORT
 } = process.env
 
@@ -58,7 +59,7 @@ function makeCall (id, request, batchWindow, batchTimeout) {
       })
       const expectedRequest = axios.request({
         ...request,
-        url: request.url + `${HOSTNAME}/${WEBHOOK_PORT}/${id}`
+        url: request.url + `${WEBHOOK_HOST || HOSTNAME}/${WEBHOOK_PORT}/${id}`
       })
         .then(res => {
           callStats.status = 'success'
@@ -79,7 +80,7 @@ function makeCall (id, request, batchWindow, batchTimeout) {
     })
 }
 
-const ws = new WebSocket('ws://controller:8080');
+const ws = new WebSocket('ws://controller:8080/?type=worker')
 
 async function main () {
   let currentState = {}
@@ -97,8 +98,6 @@ async function main () {
       batchWindow,
       batchTimeout
     } = currentState
-
-    console.log(state)
 
     if (state !== 'running') {
       await wait(100)
@@ -118,6 +117,6 @@ main()
     console.error(e)
   })
   .then(() => {
-    //server.close()
+    server.close()
     console.info('exiting')
   })
