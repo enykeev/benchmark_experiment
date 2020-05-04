@@ -18,13 +18,21 @@ In general, I'd say that the initial goal is reached and I'm ready to start test
 
 As for this project, I think there's still some room for improvement both is throughput and in presentation of results.
 
-I've implemented some simple controller for load generators based on websockets. It seems there's a noticeable impact on the throughput of the system due to increases in CPU utilization due to that. Still, it seem to be worth it if we are to move to cloud with this tool as managing a heap of json files across multiple machines is bound to be a pain. So far I'm seeing about 25% decrease in RPS, but this number may change both ways both due me finding bottlenecks and due to adding more metrics to calculate.
+I've implemented some simple controller for load generators based on websockets. It seems there's a noticeable impact on the throughput of the system due to increases in CPU utilization. Still, it seem to be worth the price if we are to move to cloud with this tool as managing a heap of json files across multiple machines is bound to be a pain. So far I'm seeing about 25% decrease in RPS, but this number may change both ways both due me finding bottlenecks and due to adding more metrics to calculate.
+
+I've added few more metrics such as rtt and e2e (time between sending a request and receiving the webhook) and a UI that allows me to see results in near real time.
+
+In the process of building the UI, the feeling that I'm inventing a wheel suddenly intensified so I decided to take a detour and see what kind of results I can get with prometheus, ab and a webhook sink in form of nginx.
+
+I've observed that a single instance of `ab` sending requests to a single instance of `mockserver` stabilizes at about 7000 RPS and 18ms eventloop lag with concurrency of 1000. Further increasing concurrency only increases eventloop lag without affecting RPS. Increasing concurrency beyond some level, however, drops RPS significantly. Increasing number of `ab` replicas does not raise RPS either, it only increases likelihood of `ab` reaching timeout before it makes all the requests.
+
+Another benefit of using this approach is that I now have an access to the trove of metrics prometheus provides so it's easier for me spot bottlenecks (and makes it possible to spot them retrospectively).
+
+What I don't like in current setup is that `ab` is pretty crude tool and does not allow me to fine tune the load to the degree I want to. I'm now inclined to try some other modern tools.
 
 TODO:
 - Throughput might be limited by something inbetween mock server and load generator be it dnsrr, limit on file descriptors or anything else.
 
 - In general it makes sense to start moving from my laptop to a cloud platform that is better suited for that kind of testing and provides more space for scalability. I bet Terraform would be of great help there.
-
-- On the other hand, if we are to move to the cloud, it also makes sense to have some sort of a controller for our load generators first so we would not have to deal with all that pesky json files.
 
 - As far as results go, for now we're only showing some crude version of requests per second, responses per second and webhooks per second. From other useful metrics there's RTT, E2ETT (request to webhook), CPU utilization (which we currently monitor separately), memory utilization, event loop period, axios retry count (which it most likely has), avaliable file descriptors (if possible), humber of registered handlers. Not all of that is terribly necessary, but any of that might point on possible bottlenecks.

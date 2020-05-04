@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^0.19.2",
     "express": "^4.17.1",
+    "express-prometheus-middleware": "^0.8.5",
     "lodash": "^4.17.15",
     "parcel-bundler": "^1.12.4",
     "plotly.js": "^1.54.0",
