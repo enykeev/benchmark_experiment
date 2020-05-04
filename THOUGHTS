@@ -30,9 +30,11 @@ Another benefit of using this approach is that I now have an access to the trove
 
 What I don't like in current setup is that `ab` is pretty crude tool and does not allow me to fine tune the load to the degree I want to. I'm now inclined to try some other modern tools.
 
-TODO:
+K6 seems to be a decent tool to make sure your app continually meets your performance expectations. I think that next thing for me to do would be to integrate it into testing pipeline for IFTTT project along with prometheus and nginx-based sink for webhooks and see the numbers I'm getting. I went way overboard with this benchmark project and while it was a cool learning experience, I think it's time to start applying this knowledge to a real use case.
+
+Further research may include this TODO items:
 - Throughput might be limited by something inbetween mock server and load generator be it dnsrr, limit on file descriptors or anything else.
 
 - In general it makes sense to start moving from my laptop to a cloud platform that is better suited for that kind of testing and provides more space for scalability. I bet Terraform would be of great help there.
 
-- As far as results go, for now we're only showing some crude version of requests per second, responses per second and webhooks per second. From other useful metrics there's RTT, E2ETT (request to webhook), CPU utilization (which we currently monitor separately), memory utilization, event loop period, axios retry count (which it most likely has), avaliable file descriptors (if possible), humber of registered handlers. Not all of that is terribly necessary, but any of that might point on possible bottlenecks.
+- Prometheus default nodejs exported provides a trove of metrics and you can add quite few on top of them, but for now I'm clueless on the effect load makes on a lot of them. There's a wide field for additioal research on the matter.

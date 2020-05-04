@@ -21,6 +21,9 @@ services:
       - http
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+    deploy:
+      replicas: 2
+      endpoint_mode: vip
 
   mockserver:
     image: node:14
@@ -37,8 +40,8 @@ services:
     volumes:
       - .:/app
     deploy:
-      replicas: 4
-      endpoint_mode: dnsrr
+      replicas: 3
+      endpoint_mode: vip
 
   ab:
     image: devth/alpine-bench
